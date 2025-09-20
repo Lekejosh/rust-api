@@ -42,7 +42,7 @@ pub async fn send_email(
     let creds = Credentials::new(smtp_username.clone(), smtp_password.clone());
 
   
-    let mailer = match SmtpTransport::relay(&smtp_server) {
+    let mailer = match SmtpTransport::starttls_relay(&smtp_server) {
         Ok(builder) => builder.port(smtp_port).credentials(creds).build(),
         Err(e) => {
             println!("[ERROR] Failed to build SMTP transport: {:?}", e);
