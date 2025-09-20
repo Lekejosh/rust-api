@@ -129,13 +129,18 @@ impl UserEx for DbClient {
         verification_token: T,
         token_expiry_at: DateTime<Utc>,
     ) -> Result<User, sqlx::Error> {
+        let name: String = name.into();
+        let email: String = email.into();
+        let password: String = password.into();
+        let verification_token: String = verification_token.into();
+
         let user = sqlx::query_as!(
             User,
             r#"INSERT INTO users (name, email, password, verification_token, token_expires_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole""#,
-            name.into(),
-            email.into(),
-            password.into(),
-            verification_token.into(),
+            name,
+            email,
+            password,
+            verification_token,
             token_expiry_at
         )
         .fetch_one(&self.pool)
