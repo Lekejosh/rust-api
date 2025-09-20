@@ -14,7 +14,7 @@ use crate::{
     db::UserEx,
     dto::{
         FilterUserDto, NameUpdateDto, RequestQueryDto, Response, RoleUpdateDto, UserData,
-        UserListResponseDto, UserPasswordUpdateDto, UserResponseDto,
+        UserListResponseDto, UserPasswordUpdateDto, UserResponseDto, VerifyEmailQueryDto,
     },
     error::{ErrorMessage, HttpError},
     middleware::{JWTAuthMiddleware, role_check},
@@ -39,6 +39,7 @@ pub fn users_handler() -> Router {
         )
         .route("/me/name", put(update_user_name))
         .route("/{id}/role", put(update_user_role))
+        .route("/verify/email", put(verify_email))
 }
 
 pub async fn get_current_user(
@@ -209,4 +210,49 @@ pub async fn update_user_password(
     };
 
     Ok(Json(response))
+}
+async fn verify_email(
+    Extension(app_state): Extension<Arc<AppState>>,
+    Json(body): Json<VerifyEmailQueryDto>,
+) -> Result<impl IntoResponse, HttpError> {
+    body.validate()
+        .map_err(|e| HttpError::bad_request(e.to_string()))?;
+
+    let user = app_state
+        .db_client
+        .get_user(None, None, None, Some(&body.token))
+        .await
+        .map_err(|e| HttpError::server_error(e.to_string()))?;
+
+    let user = user.ok_or_else(|| HttpError::not_found("User not found".to_string()))?;
+
+    if user.verified {
+        return Err(HttpError::bad_request(
+            "Email is already verified".to_string(),
+        ));
+    }
+
+    if let Some(token) = &user.verification_token {
+        if token == &body.token {
+            app_state
+                .db_client
+                .verifed_token(&user.id.to_string())
+                .await
+                .map_err(|e| HttpError::server_error(e.to_string()))?;
+
+            let response = Response {
+                status: "success",
+                message: "Email verified successfully".to_string(),
+            };
+            return Ok(Json(response));
+        } else {
+            return Err(HttpError::bad_request(
+                "Invalid verification token".to_string(),
+            ));
+        }
+    } else {
+        return Err(HttpError::bad_request(
+            "No verification token found".to_string(),
+        ));
+    }
 }

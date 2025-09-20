@@ -7,6 +7,7 @@ pub struct Config {
     pub smtp_username: String,
     pub smtp_password: String,
     pub smtp_from_address: String,
+    pub smtp_port: u16,
 }
 
 impl Config {
@@ -21,6 +22,10 @@ impl Config {
         let smtp_username = std::env::var("SMTP_USERNAME").expect("SMTP_USERNAME must be set");
         let smtp_password = std::env::var("SMTP_PASSWORD").expect("SMTP_PASSWORD must be set");
         let smtp_from_address = std::env::var("SMTP_FROM_ADDRESS").expect("SMTP_FROM_ADDRESS must be set");
+        let smtp_port = std::env::var("SMTP_PORT")
+            .unwrap_or_else(|_| "587".to_string())
+            .parse()
+            .expect("SMTP_PORT must be a valid u16");
 
         Config {
             database_url,
@@ -30,6 +35,7 @@ impl Config {
             smtp_username,
             smtp_password,
             smtp_from_address,
+            smtp_port,
         }
     }
     

@@ -16,6 +16,7 @@ use crate::{
     db::UserEx,
     dto::{LoginResponseDto, LoginUserDto, RegisterUserDto},
     error::HttpError,
+    helper::mailer::mail::send_verification_email,
     utlis::{password, token},
 };
 
@@ -92,9 +93,8 @@ async fn register(
             &verification_token,
             expires_at,
         )
-        .await
-        .map_err(|e| HttpError::server_error(e.to_string()))?;
-
+        .await;
+    send_verification_email(&body.email, &verification_token).await;
     #[derive(serde::Serialize)]
     struct RegisterResponse {
         status: String,
